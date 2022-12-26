@@ -1,2 +1,5 @@
 uvicorn
 websockets
+starlette
+pytest
+httpx
