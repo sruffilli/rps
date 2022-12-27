@@ -16,7 +16,7 @@ games = {}
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="web"), name="static")
+app.mount("/static", StaticFiles(directory="../web"), name="static")
 
 
 @app.websocket("/ws")
@@ -122,4 +122,4 @@ async def check_games(game_id):
 
 
 if __name__ == "__main__":
-  uvicorn.run(app, port=8000, log_level="info")
+  uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")

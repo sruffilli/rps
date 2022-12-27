@@ -1,4 +1,4 @@
-const serverUrl = "ws://localhost:8000/ws";
+const serverUrl = `ws://${window.location.host}/ws`;
 
 let websocket;
 let interval;
