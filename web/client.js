@@ -43,14 +43,17 @@ function startGame() {
   activateMoves();
 }
 
-function displayMessage(message) {
+function displayMessage(message, isPersistant) {
+  isPersistant ??= false
   document.getElementById("moves").classList.add("blurred");
   document.getElementById("overlay").style.setProperty("display", "flex");
   document.getElementById("overlay").innerText = message;
-  interval = setInterval(function () {
-    resetUI();
-    clearInterval(interval);
-  }, 2000)
+  if (!isPersistant) {
+    interval = setInterval(function () {
+      resetUI();
+      clearInterval(interval);
+    }, 2000)
+  }
 }
 
 function updateScoreBoard() {
@@ -94,10 +97,6 @@ function connect() {
         startGame();
         console.log("Game started");
         break;
-      case "error":
-        // Display a message indicating that the player is waiting for an opponent
-        displayMessage(message.message);
-        break;
       case "result":
         // Display the result of the game
         let resultMessage;
@@ -119,6 +118,14 @@ function connect() {
         updateScoreBoard();
         displayMessage(resultMessage);
         break;
+      case "player_disconnected":
+        // Display a message indicating that the player is waiting for an opponent
+        displayMessage("DISCONNECTED", true);
+        break;
+      case "error":
+        // Display a message indicating that the player is waiting for an opponent
+        displayMessage(message.message);
+        break;
       default:
         // Default case
         console.log("Invalid action");
@@ -132,7 +139,7 @@ function initGame() {
   websocket.send("init_game");
 }
 
-function joinGame() {
+function joinGameByInput() {
   console.log(`Joining game specified in game bar`)
   joinGame(document.getElementById("game-id").value);
 }

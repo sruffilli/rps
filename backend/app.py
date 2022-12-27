@@ -2,6 +2,7 @@ import logging
 import json
 import uvicorn
 import randomname
+import os
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -16,7 +17,11 @@ games = {}
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="../web"), name="static")
+app.mount(
+    "/web",
+    StaticFiles(
+        directory=f"{os.path.dirname(os.path.abspath(__file__))}/../web"),
+    name="web")
 
 
 @app.websocket("/ws")
@@ -29,7 +34,7 @@ async def websocket_endpoint(websocket: WebSocket):
   game_id = player_id
   logging.info(f"New player connected {player_id}")
   connections[player_id] = websocket
-  games[player_id] = ({"id": player_id, "move": None}, None)
+  games[player_id] = ({1: {"id": player_id, "move": None}, 2: None})
   await websocket.send_json({"action": "waiting", "game": player_id})
   try:
     while True:
@@ -48,12 +53,13 @@ async def websocket_endpoint(websocket: WebSocket):
               "message": "you can't join your own game"
           })
         elif game_id in games:
-          player1, player2 = games[game_id]
-          if player2 is None:
+          p1 = games[game_id][1]
+          p2 = games[game_id][2]
+          if p2 is None:
             logging.info(f"Player 2 joined for game {game_id}")
             del games[player_id]
-            games[game_id] = (player1, {"id": player_id, "move": None})
-            await connections[player1["id"]].send_json({"action": "start_game"})
+            games[game_id][2] = {"id": player_id, "move": None}
+            await connections[p1["id"]].send_json({"action": "start_game"})
             await websocket.send_json({"action": "start_game"})
           else:
             logging.info(f"Room is full for game {game_id}")
@@ -69,19 +75,26 @@ async def websocket_endpoint(websocket: WebSocket):
         print(data)
         move = data["move"]
         logging.info(f"Game {game_id} - {move}")
-        if game_id in games.keys():
-          player1, player2 = games[game_id]
-          if player_id == player1["id"]:
-            games[game_id] = ({"id": player1["id"], "move": move}, player2)
-          elif player_id == player2["id"]:
-            games[game_id] = (player1, {"id": player2["id"], "move": move})
-          else:
-            await websocket.send("error:invalid_player")
-          await check_games(game_id)
-        else:
-          await websocket.send("error:invalid_game")
+        game_player = [
+            x for x in games[game_id] if games[game_id][x]["id"] == player_id
+        ][0]
+        games[game_id][game_player]["move"] = move
+        await check_games(game_id)
+
   except WebSocketDisconnect:
-    logging.info(f"Client disconnected: {player_id}")
+    ###########################
+    # Player disconnects      #
+    ###########################
+    logging.info(f"Client disconnected: {player_id}, {game_id}")
+    del connections[player_id]
+    left_player_id = [
+        games[game_id][x]["id"]
+        for x in games[game_id]
+        if games[game_id][x]["id"] != player_id
+    ][0]
+    if left_player_id in connections:
+      await connections[left_player_id].send_json(
+          {"action": "player_disconnected"})
   except json.decoder.JSONDecodeError:
     await websocket.send_json({
         "action": "error",
@@ -90,36 +103,41 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 async def check_games(game_id):
-  (player1, player2) = games[game_id]
-  if isinstance(player1["move"], str) and isinstance(player2["move"], str):
+  p1 = games[game_id][1]
+  p2 = games[game_id][2]
+  if isinstance(p1["move"], str) and isinstance(p2["move"], str):
     # Determine the winner of the game
-    if player1["move"] == player2["move"]:
+    if p1["move"] == p2["move"]:
       result = -1
-    elif (player1["move"] == "rock" and player2["move"] == "scissors") or (
-        player1["move"] == "scissors" and
-        player2["move"] == "paper") or (player1["move"] == "paper" and
-                                        player2["move"] == "rock"):
+    elif (p1["move"] == "rock" and p2["move"] == "scissors") or (
+        p1["move"] == "scissors" and
+        p2["move"] == "paper") or (p1["move"] == "paper" and
+                                   p2["move"] == "rock"):
       result = 0
     else:
       result = 1
     # Send the result to both players
-    await connections[games[game_id][0]["id"]].send_json({
+    await connections[games[game_id][1]["id"]].send_json({
         "action": "result",
         "result": "draw" if result == -1 else "win" if result == 0 else "lose"
     })
-    await connections[games[game_id][1]["id"]].send_json({
+    await connections[games[game_id][2]["id"]].send_json({
         "action": "result",
         "result": "draw" if result == -1 else "win" if result == 1 else "lose"
     })
     # Remove the moves from the game
-    games[game_id] = ({
-        "id": games[game_id][0]["id"],
-        "move": None
-    }, {
-        "id": games[game_id][1]["id"],
-        "move": None
-    })
+    games[game_id] = {
+        1: {
+            "id": games[game_id][1]["id"],
+            "move": None
+        },
+        2: {
+            "id": games[game_id][2]["id"],
+            "move": None
+        }
+    }
 
 
 if __name__ == "__main__":
-  uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")
+  uvicorn.run(
+      "app:app", reload=True, host="0.0.0.0", port=8080, log_level="info")

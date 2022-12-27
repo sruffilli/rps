@@ -2,9 +2,7 @@ FROM python:3.11-alpine
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
-COPY backend/main.py .
+COPY . .
+RUN pip install -r backend/requirements.txt
 
-RUN pip install -r requirements.txt
-
-CMD ["python3", "main.py"]
+CMD ["python3", "backend/app.py"]
