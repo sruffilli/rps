@@ -17,6 +17,30 @@
       transition: all 0.2s ease-in-out;
     }
 
+    .breathing {
+      animation: breathing 1s ease-out infinite normal;
+    }
+
+    @keyframes breathing {
+      0% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      50% {
+        -webkit-transform: scale(1.05);
+        -ms-transform: scale(1.05);
+        transform: scale(1.05);
+      }
+
+      100% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+    }
+
     .img-fluid:hover :not(.clicked) {
       transform: scale(1.5);
       cursor: pointer;
