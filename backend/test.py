@@ -1,28 +1,27 @@
-from starlette.testclient import TestClient
-from starlette.websockets import WebSocket
+import pytest
 
 
-def client():
+@pytest.mark.asyncio
+async def test_websocket_endpoint(app, client):
+  # Connect to the WebSocket endpoint
+  ws = await client.websocket("/ws")
+
+  # Send a message over the WebSocket connection
+  await ws.send_text("hello")
+
+  # Receive the response from the WebSocket endpoint
+  response = await ws.receive_text()
+
+  # Verify that the response is the same as the message that was sent
+  assert response == "hello"
+
+
+@pytest.fixture
+def app():
   from app import app
+  return app
+
+
+@pytest.fixture
+def client(app):
   return TestClient(app)
-
-
-def test_homepage(client):
-  response = client.get("/miza")
-  assert response.status_code == 200
-  assert response.headers["content-type"] == "text/html; charset=utf-8"
-  assert response.text == "Miza"
-
-
-def test_websocket_endpoint(client):
-  # Establish websocket connection
-  with client.websocket_connect("/ws") as websocket:
-    # Send message to server
-    websocket.send_text("Client says hello")
-    # Receive modified message from server
-    response = websocket.receive_text()
-    assert response == "Server says hello"
-
-
-client = client()
-test_websocket_endpoint(client)

@@ -1,9 +1,6 @@
 const serverUrl = "ws://localhost:8000/ws";
 
 let websocket;
-let gameId;
-let playerId;
-let player;
 let interval;
 let score = {
   "self": 0,
@@ -19,6 +16,33 @@ function resetUI() {
   document.getElementById("scissors").classList.remove("clicked");
 }
 
+function clickMove(move) {
+  resetUI();
+  document.getElementById(move).classList.add("clicked")
+}
+
+function preventJoin() {
+  document.getElementById("game-id").setAttribute("disabled", "disabled");
+  document.getElementById("join-game").setAttribute("disabled", "disabled");
+}
+
+function enableJoin() {
+  document.getElementById("game-id").removeAttribute("disabled");
+  document.getElementById("join-game").removeAttribute("disabled");
+}
+
+function activateMoves() {
+  document.getElementById("rock").classList.add("breathing");
+  document.getElementById("paper").classList.add("breathing");
+  document.getElementById("scissors").classList.add("breathing");
+}
+
+function startGame() {
+  resetUI();
+  preventJoin();
+  activateMoves();
+}
+
 function displayMessage(message) {
   document.getElementById("moves").classList.add("blurred");
   document.getElementById("overlay").style.setProperty("display", "flex");
@@ -29,7 +53,7 @@ function displayMessage(message) {
   }, 2000)
 }
 
-function updateScore() {
+function updateScoreBoard() {
   document.getElementById("self-score").innerText = score.self;
   document.getElementById("opponent-score").innerText = score.opponent;
 }
@@ -50,82 +74,89 @@ function connect() {
   websocket.onmessage = function (event) {
     // Parse the message from the server
     console.log(event)
-    const message = event.data.split(":");
-    const action = message[0];
+    const message = JSON.parse(event.data);
+    const action = message.action;
     switch (action) {
-      case "player_id":
-        playerId = message[1]
-        console.log("PlayerID:" + playerId);
-        initGame();
-        break;
       case "waiting":
-        // Display a message indicating that the player is waiting for an opponent
-        gameId = message[1];
-        document.getElementById("game-id").value = gameId;
-        console.log("Waiting for an opponent");
+        const urlParams = new URLSearchParams(window.location.search);
+        const joinGameFromUrl = urlParams.get('join')
+        if (joinGameFromUrl) {
+          joinGame(joinGameFromUrl);
+          document.getElementById("game-id").value = joinGameFromUrl;
+        } else {
+          // Display a message indicating that the player is waiting for an opponent
+          document.getElementById("game-id").value = message.game;
+          console.log("Waiting for an opponent");
+        }
         break;
       case "start_game":
         // Store the game ID and start the game
-        gameId = message[1];
-        player = message[2];
-        resetUI();
+        startGame();
         console.log("Game started");
         break;
-      case "game_state":
-        // Update the game state
-        const player1 = message[1];
-        const player2 = message[2];
-        console.log(`Game state: ${player1} vs ${player2}`);
+      case "error":
+        // Display a message indicating that the player is waiting for an opponent
+        displayMessage(message.message);
         break;
       case "result":
         // Display the result of the game
-        const winningplayer = message[1];
-        const didIWin = winningplayer == player;
-        const draw = winningplayer == "draw"
-
-        if (draw) {
-          displayMessage("Draw game!")
-        } else {
-          score.self += didIWin ? 1 : 0;
-          score.opponent += didIWin ? 0 : 1;
-          displayMessage(`YOU ${didIWin ? "WON" : "LOST"}`);
-          updateScore();
+        let resultMessage;
+        switch (message.result) {
+          case "draw":
+            resultMessage = "☮️ Draw game ☮️"
+            break;
+          case "win":
+            resultMessage = "🥳 You WON! 🥳"
+            score.self += 1;
+            break;
+          case "lose":
+            resultMessage = "😒 You LOST! 😒"
+            score.opponent += 1;
+            break;
+          default:
+            break;
         }
-
-        console.log(`Result: ${winningplayer}`);
-        break;
-      case "error":
-        // Display an error message
-        const error = message[1];
-        console.log(`Error: ${error}`);
+        updateScoreBoard();
+        displayMessage(resultMessage);
         break;
       default:
         // Default case
         console.log("Invalid action");
     }
-
   };
+  return websocket;
 }
 
 function initGame() {
   // Send a message to the server to init a new game
-  self.send_message("init_game");
+  websocket.send("init_game");
 }
 
 function joinGame() {
+  console.log(`Joining game specified in game bar`)
+  joinGame(document.getElementById("game-id").value);
+}
+
+function joinGame(game) {
+  console.log(`Joining game ${game}`)
   // Send a message to the server to join an existing game
-  self.send_message(`join_game:${document.getElementById("game-id").value}`);
+  res = {
+    "action": "join_game",
+    "gameId": game
+  }
+  console.log(res)
+  websocket.send(JSON.stringify(res));
 }
 
 function makeMove(move) {
   // Send a message to the server to make a move
-  document.getElementById(move).classList.add("clicked")
-  self.send_message(`make_move:${gameId}:${move}`);
-}
-
-function getGameState() {
-  // Send a message to the server to get the current state of the game
-  self.send_message(`get_game_state:${gameId}`);
+  clickMove(move);
+  res = {
+    "action": "make_move",
+    "move": move
+  }
+  console.log(res)
+  websocket.send(JSON.stringify(res));
 }
 
 connect();

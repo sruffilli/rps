@@ -17,6 +17,30 @@
       transition: all 0.2s ease-in-out;
     }
 
+    .breathing {
+      animation: breathing 1s ease-out infinite normal;
+    }
+
+    @keyframes breathing {
+      0% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      50% {
+        -webkit-transform: scale(1.05);
+        -ms-transform: scale(1.05);
+        transform: scale(1.05);
+      }
+
+      100% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+    }
+
     .img-fluid:hover :not(.clicked) {
       transform: scale(1.5);
       cursor: pointer;
@@ -75,13 +99,13 @@
     <div class="row position-relative">
       <div id="moves" class="bottom-div d-flex align-items-center justify-content-center blurred">
         <div class="col-4 text-center">
-          <button class="img-fluid" id="rock" onclick="makeMove("rock")">✊</button>
+          <button class="img-fluid" id="rock" onclick="makeMove('rock')">✊</button>
         </div>
         <div class=" col-4 text-center">
-          <button class="img-fluid" id="paper" onclick="makeMove("paper")">✋</button>
+          <button class="img-fluid" id="paper" onclick="makeMove('paper')">✋</button>
         </div>
         <div class="col-4 text-center">
-          <button class="img-fluid" id="scissors" onclick="makeMove("scissors")">✌️</button>
+          <button class="img-fluid" id="scissors" onclick="makeMove('scissors')">✌️</button>
         </div>
       </div>
       <div id="overlay" class="top-div d-flex align-items-center justify-content-center">
