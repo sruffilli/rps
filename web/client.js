@@ -2,64 +2,17 @@ const serverUrl = `ws://${window.location.host}/ws`;
 
 let websocket;
 let interval;
+let messageOutInterval;
+let vibrateInterval;
+let ephemeralMessageInterval;
 let score = {
   "self": 0,
   "opponent": 0
 }
 
-function resetUI() {
-  document.getElementById("moves").classList.remove("blurred");
-  document.getElementById("overlay").style.setProperty("display", "none", "important");
-  document.getElementById("overlay").innerText = "";
-  document.getElementById("rock").classList.remove("clicked");
-  document.getElementById("paper").classList.remove("clicked");
-  document.getElementById("scissors").classList.remove("clicked");
-}
-
-function clickMove(move) {
-  resetUI();
-  document.getElementById(move).classList.add("clicked")
-}
-
-function preventJoin() {
-  document.getElementById("game-id").setAttribute("disabled", "disabled");
-  document.getElementById("join-game").setAttribute("disabled", "disabled");
-}
-
-function enableJoin() {
-  document.getElementById("game-id").removeAttribute("disabled");
-  document.getElementById("join-game").removeAttribute("disabled");
-}
-
-function activateMoves() {
-  document.getElementById("rock").classList.add("breathing");
-  document.getElementById("paper").classList.add("breathing");
-  document.getElementById("scissors").classList.add("breathing");
-}
-
-function startGame() {
-  resetUI();
-  preventJoin();
-  activateMoves();
-}
-
-function displayMessage(message, isPersistant) {
-  isPersistant ??= false
-  document.getElementById("moves").classList.add("blurred");
-  document.getElementById("overlay").style.setProperty("display", "flex");
-  document.getElementById("overlay").innerText = message;
-  if (!isPersistant) {
-    interval = setInterval(function () {
-      resetUI();
-      clearInterval(interval);
-    }, 2000)
-  }
-}
-
-function updateScoreBoard() {
-  document.getElementById("self-score").innerText = score.self;
-  document.getElementById("opponent-score").innerText = score.opponent;
-}
+/*
+ * Websocket connection and message handling
+ */
 
 function connect() {
   // Connect to the WebSocket server
@@ -87,7 +40,6 @@ function connect() {
           joinGame(joinGameFromUrl);
           document.getElementById("game-id").value = joinGameFromUrl;
         } else {
-          // Display a message indicating that the player is waiting for an opponent
           document.getElementById("game-id").value = message.game;
           console.log("Waiting for an opponent");
         }
@@ -116,15 +68,15 @@ function connect() {
             break;
         }
         updateScoreBoard();
-        displayMessage(resultMessage);
+        showEphemeralMessage(resultMessage);
+        resetUI();
         break;
       case "player_disconnected":
-        // Display a message indicating that the player is waiting for an opponent
-        displayMessage("DISCONNECTED", true);
+        showMessage("Player Disconnected. Refresh for a new game.");
         break;
       case "error":
         // Display a message indicating that the player is waiting for an opponent
-        displayMessage(message.message);
+        showMessage("Something weird happened and I give up. Refresh for a new game!");
         break;
       default:
         // Default case
@@ -132,6 +84,22 @@ function connect() {
     }
   };
   return websocket;
+}
+
+/*
+ * In-game actions
+ */
+
+function startGame() {
+  preventJoin();
+  resetUI();
+  unblockUI();
+  showEphemeralMessage("FIGHT!")
+}
+
+function updateScoreBoard() {
+  document.getElementById("self-score").innerText = score.self;
+  document.getElementById("opponent-score").innerText = score.opponent;
 }
 
 function initGame() {
@@ -166,4 +134,89 @@ function makeMove(move) {
   websocket.send(JSON.stringify(res));
 }
 
+/*
+ * UI/UX
+ */
+
+function resetUI() {
+  document.getElementById("rock").classList.remove("clicked");
+  document.getElementById("paper").classList.remove("clicked");
+  document.getElementById("scissors").classList.remove("clicked");
+}
+
+function blockUI() {
+  document.getElementById("rock").setAttribute("disabled", "disabled");
+  document.getElementById("paper").setAttribute("disabled", "disabled");
+  document.getElementById("scissors").setAttribute("disabled", "disabled");
+  document.getElementById("rock").classList.remove("breathing");
+  document.getElementById("paper").classList.remove("breathing");
+  document.getElementById("scissors").classList.remove("breathing");
+}
+
+function unblockUI() {
+  document.getElementById("rock").removeAttribute("disabled");
+  document.getElementById("paper").removeAttribute("disabled");
+  document.getElementById("scissors").removeAttribute("disabled");
+  document.getElementById("rock").classList.add("breathing");
+  document.getElementById("paper").classList.add("breathing");
+  document.getElementById("scissors").classList.add("breathing");
+}
+
+function messageIn() {
+  blockUI();
+  document.getElementById("board").classList.add("blurred");
+  document.getElementById("message-box-overlay").style.display = "table";
+  document.getElementById("message-box").classList.remove("slide-out-blurred-right");
+  document.getElementById("message-box").classList.add("slide-in-blurred-left");
+}
+
+function messageOut() {
+  document.getElementById("message-box").classList.remove("vibrate");
+  document.getElementById("message-box").classList.remove("slide-in-blurred-left");
+  document.getElementById("message-box").classList.add("slide-out-blurred-right");
+  messageOutInterval = setInterval(function () {
+    document.getElementById("message-box-overlay").style.display = "none";
+    unblockUI();
+    document.getElementById("board").classList.remove("blurred");
+    clearInterval(messageOutInterval);
+  }, 500)
+}
+
+function showMessage(message, options) {
+  options ??= {};
+  document.getElementById("message").innerText = message;
+  if (document.getElementById("message-box-overlay").style.display == "table") {
+    document.getElementById("message-box").classList.remove("slide-in-blurred-left");
+    document.getElementById("message-box").classList.add("vibrate");
+  } else {
+    messageIn();
+  }
+}
+
+function showEphemeralMessage(message, timer) {
+  timer ??= 1500;
+  showMessage(message);
+  ephemeralMessageInterval = setInterval(function () {
+    messageOut();
+    clearInterval(ephemeralMessageInterval);
+  }, timer)
+}
+
+function clickMove(move) {
+  resetUI();
+  document.getElementById(move).classList.add("clicked")
+  blockUI();
+}
+
+function preventJoin() {
+  document.getElementById("game-id").setAttribute("disabled", "disabled");
+  document.getElementById("join-game").setAttribute("disabled", "disabled");
+}
+
+function enableJoin() {
+  document.getElementById("game-id").removeAttribute("disabled");
+  document.getElementById("join-game").removeAttribute("disabled");
+}
+
 connect();
+showMessage("Waiting for an opponent...")

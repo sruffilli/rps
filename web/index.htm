@@ -6,79 +6,8 @@
   <title>Rock Paper Scissors</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-  <style>
-    /* Add some styling to the images */
-    .img-fluid {
-      height: 100px;
-      width: 100px;
-      font-size: 4em;
-      border-radius: 50%;
-      border: 2px solid #ccc;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .breathing {
-      animation: breathing 1s ease-out infinite normal;
-    }
-
-    @keyframes breathing {
-      0% {
-        -webkit-transform: scale(1);
-        -ms-transform: scale(1);
-        transform: scale(1);
-      }
-
-      50% {
-        -webkit-transform: scale(1.05);
-        -ms-transform: scale(1.05);
-        transform: scale(1.05);
-      }
-
-      100% {
-        -webkit-transform: scale(1);
-        -ms-transform: scale(1);
-        transform: scale(1);
-      }
-    }
-
-    .img-fluid:hover :not(.clicked) {
-      transform: scale(1.5);
-      cursor: pointer;
-    }
-
-    .clicked {
-      scale: 1.5;
-    }
-
-    /* Center the scoreboard */
-    h1 {
-      display: inline-block;
-      vertical-align: middle;
-      line-height: normal;
-    }
-
-    .top-div {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(214, 214, 214, 0.5);
-      border-radius: 15px;
-      /* semi-transparent white */
-    }
-
-    .bottom-div {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      /* blur the div */
-    }
-
-    .blurred {
-      filter: blur(5px);
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Special Elite">
 </head>
 
 <body>
@@ -86,7 +15,6 @@
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Rock Paper Scissors</a>
-
       <input id="game-id" class="form-control me-2" type="text" aria-label="game-id">
       <button id="join-game" class="btn btn-outline-success" onclick="joinGameByInput()">Join</button>
 
@@ -94,39 +22,40 @@
   </nav>
 
   <!-- The main content -->
-  <div class="container mt-5">
+  <div class="container mt-5 main-content">
     <!-- The moves -->
-    <div class="row position-relative">
-      <div id="moves" class="bottom-div d-flex align-items-center justify-content-center blurred">
+    <div id="board" class="row blurred">
+      <div id="moves" class="d-flex align-items-center justify-content-center">
         <div class="col-4 text-center">
-          <button class="img-fluid" id="rock" onclick="makeMove('rock')">✊</button>
+          <button class="move" id="rock" disabled="disabled" onclick="makeMove('rock')">✊</button>
         </div>
         <div class=" col-4 text-center">
-          <button class="img-fluid" id="paper" onclick="makeMove('paper')">✋</button>
+          <button class="move" id="paper" disabled="disabled" onclick="makeMove('paper')">✋</button>
         </div>
         <div class="col-4 text-center">
-          <button class="img-fluid" id="scissors" onclick="makeMove('scissors')">✌️</button>
+          <button class="move" id="scissors" disabled="disabled" onclick="makeMove('scissors')">✌️</button>
         </div>
       </div>
-      <div id="overlay" class="top-div d-flex align-items-center justify-content-center">
-        Waiting for an opponent...
+      <div class="row mt-5">
+        <div class="col-6 text-center">
+          <div class="player-name">You</div>
+          <div class="player-score" id="self-score">0</div>
+        </div>
+        <div class="col-6 text-center">
+          <div class="player-name">Opponent</div>
+          <div class="player-score" id="opponent-score">0</div>
+        </div>
+      </div>
+    </div>
+    <div id="message-box-overlay" style="display: none;">
+      <div id="message-box" class="status-text slide-in-blurred-left">
+        <div id="message"></div>
       </div>
     </div>
 
     <!-- The scoreboard -->
-    <div class="row mt-5">
-      <div class="col-6 text-center">
-        <h3>You</h3>
-        <h1 id="self-score">0</h1>
-      </div>
-      <div class="col-6 text-center">
-        <h3>Opponent</h3>
-        <h1 id="opponent-score">0</h1>
-      </div>
-    </div>
-  </div>
 
-  <script src="client.js"></script>
+    <script src="client.js"></script>
 </body>
 
 </html>
